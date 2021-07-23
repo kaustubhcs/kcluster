@@ -80,7 +80,7 @@ int allocate_matrix_and_vector(float ***input_data, int **ground_truth) {
 
 void initialize_centroids(float *mal_centroid, float *ben_centroid, float **input_data) {
    int mal_datapoint = 7;
-   int ben_datapoint = 10;
+   int ben_datapoint = 8;
    for (int i=0; i<NUMBER_OF_FEATURES; i++) {
       mal_centroid[i] = input_data[mal_datapoint][i];
    }
@@ -128,6 +128,9 @@ void classify_points(float *mal_centroid, float *ben_centroid, float **input_dat
 void compute_new_centroids(float **mal_centroid, float **ben_centroid, float **input_data, int *classification) {
    float mal_updated_centroid[NUMBER_OF_FEATURES];
    float ben_updated_centroid[NUMBER_OF_FEATURES];
+   int total_mal_points = 0;
+   int total_ben_points = 0;
+   
    for (int i=0; i < NUMBER_OF_FEATURES; i++) {
       mal_updated_centroid[i] = 0.0;
       ben_updated_centroid[i] = 0.0;
@@ -136,11 +139,13 @@ void compute_new_centroids(float **mal_centroid, float **ben_centroid, float **i
    for (int i=0; i < DATAPOINTS; i++) {
       if (classification[i] == MALIGN) {
          // Point is MALIGN
+         total_mal_points++;
          for (int j=0; j < NUMBER_OF_FEATURES; j++) {
             mal_updated_centroid[j] += input_data[i][j];
          }
       } else {
          // Point is BENIGN
+         total_ben_points++;
          for (int j=0; j < NUMBER_OF_FEATURES; j++) {
             ben_updated_centroid[j] += input_data[i][j];
          }
@@ -148,8 +153,8 @@ void compute_new_centroids(float **mal_centroid, float **ben_centroid, float **i
    }
    // Average out the centroids
    for (int i=0; i < NUMBER_OF_FEATURES; i++) {
-      mal_updated_centroid[i] = mal_updated_centroid[i]/DATAPOINTS;
-      ben_updated_centroid[i] = ben_updated_centroid[i]/DATAPOINTS;
+      mal_updated_centroid[i] = mal_updated_centroid[i]/total_mal_points;
+      ben_updated_centroid[i] = ben_updated_centroid[i]/total_ben_points;
    }
    // Copy the updated centroids to original centroids
    for (int i=0; i < NUMBER_OF_FEATURES; i++) {

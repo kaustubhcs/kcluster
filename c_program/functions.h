@@ -176,7 +176,7 @@ float check_accuracy(int *classification, int *ground_truth) {
    if (accuracy <= 50.0) {
       accuracy = 100 - accuracy;
    }
-   printf("Accuracy: %f \%\tCorrect: %d\tIncorrect: %d\n", accuracy, correct_count, incorrect_count);
+   printf("Accuracy: %f \%\n", accuracy);
    return (accuracy);
 }
 

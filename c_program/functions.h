@@ -79,8 +79,8 @@ int allocate_matrix_and_vector(float ***input_data, int **ground_truth) {
 }
 
 void initialize_centroids(float *mal_centroid, float *ben_centroid, float **input_data) {
-   int mal_datapoint = 3;
-   int ben_datapoint = 5;
+   int mal_datapoint = 7;
+   int ben_datapoint = 10;
    for (int i=0; i<NUMBER_OF_FEATURES; i++) {
       mal_centroid[i] = input_data[mal_datapoint][i];
    }
@@ -100,15 +100,28 @@ float euclidean_distance(float *point_A, float *point_B) {
 
 void classify_points(float *mal_centroid, float *ben_centroid, float **input_data, int *classification) {
    float mal_dist, ben_dist;
+   int total_mal_points = 0;
+   int total_ben_points = 0;
+   float total_mal_distance = 0.0;
+   float total_ben_distance = 0.0;
+   float avg_mal_distance;
+   float avg_ben_distance;
    for (int i=0; i < DATAPOINTS; i++) {
       mal_dist = euclidean_distance(mal_centroid, input_data[i]);
       ben_dist = euclidean_distance(ben_centroid, input_data[i]);
       if (mal_dist < ben_dist) {
          classification[i] = MALIGN;
+         total_mal_points++;
+         total_mal_distance += mal_dist;
       } else {
          classification[i] = BENIGN;
+         total_ben_points++;
+         total_ben_distance += ben_dist;
       }
    }
+   avg_mal_distance = total_mal_distance / total_mal_points;
+   avg_ben_distance = total_ben_distance / total_ben_points;
+   printf("Avg Mal:%f Avg Ben:%f Total Mal:%d Total Ben:%d\n", avg_mal_distance, avg_ben_distance, total_mal_points, total_ben_points);
 }
 
 
@@ -135,8 +148,8 @@ void compute_new_centroids(float **mal_centroid, float **ben_centroid, float **i
    }
    // Average out the centroids
    for (int i=0; i < NUMBER_OF_FEATURES; i++) {
-      mal_updated_centroid[i] = mal_updated_centroid[i]/NUMBER_OF_FEATURES;
-      ben_updated_centroid[i] = ben_updated_centroid[i]/NUMBER_OF_FEATURES;
+      mal_updated_centroid[i] = mal_updated_centroid[i]/DATAPOINTS;
+      ben_updated_centroid[i] = ben_updated_centroid[i]/DATAPOINTS;
    }
    // Copy the updated centroids to original centroids
    for (int i=0; i < NUMBER_OF_FEATURES; i++) {
@@ -165,6 +178,19 @@ float check_accuracy(int *classification, int *ground_truth) {
    }
    printf("Accuracy: %f \%\tCorrect: %d\tIncorrect: %d\n", accuracy, correct_count, incorrect_count);
    return (accuracy);
+}
+
+void print_centroids(float *mal_centroid, float *ben_centroid) {
+   printf("Mal Centroid: ");
+   for (int i=0; i < NUMBER_OF_FEATURES; i++) {
+      printf("%f\t", mal_centroid[i]);
+   }
+   printf("\n");
+   printf("Ben Centroid: ");
+   for (int i=0; i < NUMBER_OF_FEATURES; i++) {
+      printf("%f\t", ben_centroid[i]);
+   }
+   printf("\n");
 }
 
 #endif

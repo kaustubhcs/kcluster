@@ -23,12 +23,13 @@ int main() {
    initialize_centroids(mal_centroid, ben_centroid, input_data);
 
    int *classification = (int *) malloc(DATAPOINTS * sizeof(int));
-
+   print_centroids(mal_centroid, ben_centroid);
    int number_of_iterations = 8;
    for (int iter=0; iter < number_of_iterations; iter++) {
       classify_points(mal_centroid, ben_centroid, input_data, classification);
       compute_new_centroids(&mal_centroid, &ben_centroid, input_data, classification);
       check_accuracy(classification, ground_truth);
+      print_centroids(mal_centroid, ben_centroid);
    }
 
    return 0;

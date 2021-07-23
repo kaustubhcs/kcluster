@@ -13,17 +13,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 // Constants
 #define DATAPOINTS 699
-#define BUFFER_SIZE 5000
+#define BUFFER_SIZE 1000
 #define NUMBER_OF_FEATURES 9
 #define GROUND_TRUTH_POSITION 10
+#define BENIGN 2
+#define MALIGN 4
 
 // Function Declarations
 int read_data(char *file_name, float **input_data, int *ground_truth);
 void fill_single_datapoint(char *line_data, float **input_data, int *ground_truth, int line_iterator);
-int allocate_matrix_and_vector(float **input_data, int *ground_truth);
+int allocate_matrix_and_vector(float ***input_data, int **ground_truth);
+float euclidean_distance(float *point_A, float *point_B);
 
 
 int read_data(char *file_name, float **input_data, int *ground_truth) {
@@ -35,14 +39,12 @@ int read_data(char *file_name, float **input_data, int *ground_truth) {
    }
 
    if (file_obj != NULL) {
-      char *line_data;
-      line_data = (char *) malloc(BUFFER_SIZE * sizeof(char));
+      char line_data[BUFFER_SIZE];
       // Remove header
       fgets(line_data, sizeof line_data, file_obj);
       // Iterate over data.
       int line_iterator=0;
       while(fgets(line_data, sizeof line_data, file_obj)!= NULL) {
-         printf("line_iterator: %d\n", line_iterator);
          fill_single_datapoint(line_data, input_data, ground_truth, line_iterator);
          line_iterator++;
       }
@@ -53,37 +55,116 @@ int read_data(char *file_name, float **input_data, int *ground_truth) {
 }
 
 void fill_single_datapoint(char *line_data, float **input_data, int *ground_truth, int line_iterator) {
-   printf("%s", line_data);
    char *cut_line;
    float float_data;
    // Remove ID
    cut_line = strtok (line_data, ",\n");
-   // printf("%s\n", cut_line);
    for (int i=0; i < NUMBER_OF_FEATURES; i++) {
       cut_line = strtok (NULL, ",\n");
-      // printf("Test: %p\n", input_data);
-      // input_data[i] = 500.0;
-      // printf("%s\n", cut_line);
       float_data = atof(cut_line);
-      printf("F_data: %f\n", float_data);
       input_data[line_iterator][i] = float_data;
    }
    cut_line = strtok (NULL, ",\n");
-   printf("Truth String: %s\n", cut_line);
    ground_truth[line_iterator] = atoi(cut_line);
 }
 
-int allocate_matrix_and_vector(float **input_data, int *ground_truth) {
-   input_data = (float **) malloc(DATAPOINTS * sizeof(float *));
+int allocate_matrix_and_vector(float ***input_data, int **ground_truth) {
+   *input_data = (float **) malloc(DATAPOINTS * sizeof(float *));
     for (int index=0; index<DATAPOINTS; index++) {
-       input_data[index] = malloc(NUMBER_OF_FEATURES * sizeof(float));
+         (*input_data)[index] = malloc(NUMBER_OF_FEATURES * sizeof(float));
     }
-    ground_truth = (int *) malloc(DATAPOINTS * sizeof(int));
+    *ground_truth = (int *) malloc(DATAPOINTS * sizeof(int));
 
     return 0;
 }
 
+void initialize_centroids(float *mal_centroid, float *ben_centroid, float **input_data) {
+   int mal_datapoint = 3;
+   int ben_datapoint = 5;
+   for (int i=0; i<NUMBER_OF_FEATURES; i++) {
+      mal_centroid[i] = input_data[mal_datapoint][i];
+   }
+   for (int i=0; i<NUMBER_OF_FEATURES; i++) {
+      ben_centroid[i] = input_data[ben_datapoint][i];
+   }
+}
+
+float euclidean_distance(float *point_A, float *point_B) {
+   float distance = 0.0;
+   for (int i=0; i < NUMBER_OF_FEATURES; i++) {
+      distance += ((point_A[i] - point_B[i]) * ((point_A[i] - point_B[i])));
+   }
+   distance = sqrt(distance);
+   return(distance);
+}
+
+void classify_points(float *mal_centroid, float *ben_centroid, float **input_data, int *classification) {
+   float mal_dist, ben_dist;
+   for (int i=0; i < DATAPOINTS; i++) {
+      mal_dist = euclidean_distance(mal_centroid, input_data[i]);
+      ben_dist = euclidean_distance(ben_centroid, input_data[i]);
+      if (mal_dist < ben_dist) {
+         classification[i] = MALIGN;
+      } else {
+         classification[i] = BENIGN;
+      }
+   }
+}
 
 
+void compute_new_centroids(float **mal_centroid, float **ben_centroid, float **input_data, int *classification) {
+   float mal_updated_centroid[NUMBER_OF_FEATURES];
+   float ben_updated_centroid[NUMBER_OF_FEATURES];
+   for (int i=0; i < NUMBER_OF_FEATURES; i++) {
+      mal_updated_centroid[i] = 0.0;
+      ben_updated_centroid[i] = 0.0;
+   }
+
+   for (int i=0; i < DATAPOINTS; i++) {
+      if (classification[i] == MALIGN) {
+         // Point is MALIGN
+         for (int j=0; j < NUMBER_OF_FEATURES; j++) {
+            mal_updated_centroid[j] += input_data[i][j];
+         }
+      } else {
+         // Point is BENIGN
+         for (int j=0; j < NUMBER_OF_FEATURES; j++) {
+            ben_updated_centroid[j] += input_data[i][j];
+         }
+      }
+   }
+   // Average out the centroids
+   for (int i=0; i < NUMBER_OF_FEATURES; i++) {
+      mal_updated_centroid[i] = mal_updated_centroid[i]/NUMBER_OF_FEATURES;
+      ben_updated_centroid[i] = ben_updated_centroid[i]/NUMBER_OF_FEATURES;
+   }
+   // Copy the updated centroids to original centroids
+   for (int i=0; i < NUMBER_OF_FEATURES; i++) {
+      (*mal_centroid)[i] = mal_updated_centroid[i];
+      (*ben_centroid)[i] = ben_updated_centroid[i];
+   }
+}
+float check_accuracy(int *classification, int *ground_truth) {
+   int correct_count = 0;
+   int incorrect_count = 0;
+   // for (int i=0; i < 20; i++) {
+   //    printf("i:%d\tclass:%d\ttruth:%d\n", i, classification[i], ground_truth[i]);
+   // }
+   for (int i=0; i < DATAPOINTS; i++) {
+      if (classification[i] == ground_truth[i]) {
+         correct_count++;
+      } else {
+         incorrect_count++;
+      }
+   }
+   float mal_count_float = (float) correct_count;
+   float accuracy;
+   accuracy = (mal_count_float/DATAPOINTS) * 100.0;
+   if (accuracy <= 50.0) {
+      accuracy = 100 - accuracy;
+   }
+   printf("Accuracy: %f \%\tCorrect: %d\tIncorrect: %d\n", accuracy, correct_count, incorrect_count);
+   return (accuracy);
+}
 
 #endif
